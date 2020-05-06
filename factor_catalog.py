@@ -53,4 +53,12 @@ class FactorCatalog:
     def __repr__(self):
         header = '{} catalog:'.format(type(self._factorization))
         return '{}\n\t{}'.format(header, self.annotations)
+    
+    
+    
+if __name__ == "__main__":
+    catalog = FactorCatalog(20, random_state=10, batch_size=100, 
+                            compute_labels=True, init='k-means++', 
+                            init_size=None, max_iter=100, max_no_improvement=10, 
+                            n_init=3, reassignment_ratio=0.01, tol=0.0, verbose=0)
 
