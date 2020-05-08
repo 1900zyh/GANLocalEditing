@@ -662,11 +662,14 @@ class Generator(nn.Module):
     ):
         
         # obtain layer-wise style: z->w->ys
-        w = self.z_to_w(styles, truncation=truncation, truncation_latent=truncation_latent)
-        ys = self.w_to_ys(w)
+        if not input_is_latent: 
+            w = self.z_to_w(styles, truncation=truncation, truncation_latent=truncation_latent)
+            ys = self.w_to_ys(w)
+        else:
+            ys = styles
         
         # obtain layer-wise noise and constant input 
-        batch = w.size(0)
+        batch = ys[0].size(0)
         out = self.input(batch)
         if noise is None:
             if randomize_noise:
@@ -686,13 +689,15 @@ class Generator(nn.Module):
         ):
             out = conv1.apply_style(out, ys[2+i], noise=noise1)
             out = conv2.apply_style(out, ys[2+i+1], noise=noise2)
+            if i == 6: 
+                extract_feat = out
             skip = to_rgb.apply_style(out, ys[2+i+2], skip)
             i += 3
 
         image = skip
 
         if return_latents:
-            return image, ys
+            return image, ys, extract_feat
 
         else:
             return image, None
