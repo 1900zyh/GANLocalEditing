@@ -628,8 +628,32 @@ class Generator(nn.Module):
         return self.style(input)
 
     
-    def ys_to_rgb(self, input, latent):
-        batch, in_channel, height, width = input.shape
+    def ys_to_rgb(self, input, ys):
+        # obtain layer-wise noise and constant input 
+        batch = ys[0].size(0)
+        out = self.input(batch)
+        noise = [None] * self.num_layers
+        
+        # get and apply layer-wise style
+        feats = [out]
+        out = self.conv1.apply_style(out, ys[0], noise=noise[0])
+        feats.append(out)
+        skip = self.to_rgb1.apply_style(out, ys[1])
+
+        i = 0
+        for conv1, conv2, noise1, noise2, to_rgb in zip(
+            self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
+        ):
+            feats.append(out)
+            out = conv1.apply_style(out, ys[2+i], noise=noise1)
+            feats.append(out)
+            out = conv2.apply_style(out, ys[2+i+1], noise=noise2)
+            feats.append(out)
+            skip = to_rgb.apply_style(out, ys[2+i+2], skip)
+            i += 3
+
+        image = skip
+        return image
     
     def z_to_w(self, z, truncation=1.0, truncation_latent=None):
         w = self.get_latent(z)
@@ -680,24 +704,27 @@ class Generator(nn.Module):
                 ]
 
         # get and apply layer-wise style
+        feats = [out]
         out = self.conv1.apply_style(out, ys[0], noise=noise[0])
+        feats.append(out)
         skip = self.to_rgb1.apply_style(out, ys[1])
 
         i = 0
         for conv1, conv2, noise1, noise2, to_rgb in zip(
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
+            feats.append(out)
             out = conv1.apply_style(out, ys[2+i], noise=noise1)
+            feats.append(out)
             out = conv2.apply_style(out, ys[2+i+1], noise=noise2)
-            if i == 6: 
-                extract_feat = out
+            feats.append(out)
             skip = to_rgb.apply_style(out, ys[2+i+2], skip)
             i += 3
 
         image = skip
 
         if return_latents:
-            return image, ys, extract_feat
+            return image, ys, feats
 
         else:
             return image, None

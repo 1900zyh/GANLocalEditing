@@ -29,7 +29,6 @@ class StyleInterpolator:
         self._cache = {}
 
     def _interpolate_y(self, y1, y2, q):
-        print(y1.size(), y2.size(), q.size())
         if torch.is_tensor(q):
 
 
